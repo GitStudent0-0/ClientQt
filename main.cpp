@@ -1,19 +1,30 @@
+#include <QCommandLineOption>
+#include <QCommandLineParser>
 #include <QCoreApplication>
+#include <QDebug>
 
 int main(int argc, char *argv[])
 {
     QCoreApplication a(argc, argv);
+    QCommandLineParser parser;
+    QCommandLineOption hostOption("i", "IP", "default-IP");
+    QCommandLineOption portOption("p", "Port", "default-port");
+    QCommandLineOption protocolOption("protocol", "Protocol", "default-protocol");
+    parser.addOption(hostOption);
+    parser.addOption(portOption);
+    parser.addOption(protocolOption);
 
-    // Set up code that uses the Qt event loop here.
-    // Call QCoreApplication::quit() or QCoreApplication::exit() to quit the application.
-    // A not very useful example would be including
-    // #include <QTimer>
-    // near the top of the file and calling
-    // QTimer::singleShot(5000, &a, &QCoreApplication::quit);
-    // which quits the application after 5 seconds.
+    QString host = "";
+    if (parser.isSet(hostOption))
+      host = parser.value(hostOption);
 
-    // If you do not need a running Qt event loop, remove the call
-    // to QCoreApplication::exec() or use the Non-Qt Plain C++ Application template.
+    int port = 0;
+    if (parser.isSet(portOption))
+      port = parser.value(portOption).toInt();
+
+    QString protocol;
+    if (parser.isSet(protocolOption))
+      protocol = parser.value(protocolOption);
 
     return QCoreApplication::exec();
 }
