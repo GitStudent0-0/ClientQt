@@ -1,8 +1,8 @@
+#include "Client.h"
 #include <QCommandLineOption>
 #include <QCommandLineParser>
 #include <QCoreApplication>
 #include <QDebug>
-
 int main(int argc, char *argv[])
 {
     QCoreApplication a(argc, argv);
@@ -13,6 +13,7 @@ int main(int argc, char *argv[])
     parser.addOption(hostOption);
     parser.addOption(portOption);
     parser.addOption(protocolOption);
+    parser.process(a);
 
     QString host = "";
     if (parser.isSet(hostOption))
@@ -25,6 +26,7 @@ int main(int argc, char *argv[])
     QString protocol;
     if (parser.isSet(protocolOption))
       protocol = parser.value(protocolOption);
-
+    Client* socket = new Client(qApp);
+    socket->connectToServer(host, port);
     return QCoreApplication::exec();
 }
