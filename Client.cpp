@@ -6,15 +6,35 @@ Client::Client(QObject* parent)
   m_socket = new QTcpSocket(this);
   in.setDevice(m_socket);
   in.setVersion(QDataStream::Qt_5_15);
+  connect(m_socket, &QTcpSocket::connected, this, &Client::connected);
   connect(m_socket, &QTcpSocket::readyRead, this, &Client::readyRead);
   connect(m_socket, &QTcpSocket::errorOccurred, this, &Client::errorOccurred);
   connect(m_socket, &QTcpSocket::disconnected, this, &Client::disconnected);
+  m_timer = new QTimer(this);
+  m_timer->setInterval(3000);
+  connect(m_timer, &QTimer::timeout, this, &Client::tryReconnect);
 }
 
-Client::~Client() {}
+Client::~Client()
+{
+  m_timer->stop();
+  if (m_socket)
+    m_socket->abort();
+}
 void Client::connectToServer(const QString& host, int port)
 {
-  m_socket->connectToHost(host, port);
+  serverHost = host;
+  serverPort = port;
+  tryReconnect();
+}
+
+void Client::tryReconnect()
+{
+  if (m_socket->state() == QAbstractSocket::UnconnectedState)
+  {
+    qDebug() << "Attempt to connect to the server...";
+    m_socket->connectToHost(serverHost, serverPort);
+  }
 }
 
 void Client::readyRead()
@@ -27,17 +47,23 @@ void Client::readyRead()
   if (!in.commitTransaction())
     return;
 
-  if (nextMessage == currentMessage)
+  if (nextMessage == m_currentMessage)
     return;
 
-  currentMessage = nextMessage;
-  QTextStream(stdout) << currentMessage << "\n";
+  m_currentMessage = nextMessage;
+  QTextStream(stdout) << m_currentMessage << "\n";
+}
+
+void Client::connected()
+{
+  qDebug() << "Connect to the server";
+  m_timer->stop();
 }
 
 void Client::disconnected()
 {
-  m_socket->close();
   qDebug() << "The server closed the connection";
+  m_timer->start();
 }
 
 void Client::errorOccurred(QAbstractSocket::SocketError socketError)
@@ -60,5 +86,6 @@ void Client::errorOccurred(QAbstractSocket::SocketError socketError)
                        .arg(m_socket->errorString());
   }
 
-  QCoreApplication::exit(1);
+  if (!m_timer->isActive())
+    m_timer->start();
 }

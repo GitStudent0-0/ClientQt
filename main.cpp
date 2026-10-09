@@ -27,7 +27,6 @@ int main(int argc, char *argv[])
     if (parser.isSet(protocolOption))
       protocol = parser.value(protocolOption);
     Client* socket = new Client(qApp);
-    QTimer::singleShot(1000, socket, [socket, host, port]()
-                       { socket->connectToServer(host, port); });
-    return QCoreApplication::exec();
+    socket->connectToServer(host, port);
+    return a.exec();
 }
