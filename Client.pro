@@ -1,6 +1,8 @@
 QT = core
 QT += network xml
 CONFIG += c++17 cmdline
+CONFIG += link_pkgconfig
+PKGCONFIG += log4cplus
 
 # You can make your code fail to compile if it uses deprecated APIs.
 # In order to do so, uncomment the following line.

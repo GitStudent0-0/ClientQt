@@ -2,6 +2,7 @@
 
 Client::Client(QObject* parent)
   : QObject(parent)
+  , m_logger(Logger::getInstance(LOG4CPLUS_TEXT("Client")))
 {
   m_socket = new QTcpSocket(this);
   in.setDevice(m_socket);

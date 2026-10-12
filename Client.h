@@ -4,7 +4,11 @@
 #include <QDataStream>
 #include <QTcpSocket>
 #include <QThread>
-
+#include <log4cplus/configurator.h>
+#include <log4cplus/initializer.h>
+#include <log4cplus/logger.h>
+#include <log4cplus/loggingmacros.h>
+using namespace log4cplus;
 class Client : public QObject
 {
   Q_OBJECT
@@ -27,6 +31,7 @@ private:
   QString m_currentMessage;
   QString m_serverHost = "";
   int m_serverPort = 0;
+  Logger m_logger;
 };
 
 #endif // CLIENT_H

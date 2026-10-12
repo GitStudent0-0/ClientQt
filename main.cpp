@@ -3,6 +3,8 @@
 #include <QCommandLineParser>
 #include <QCoreApplication>
 #include <QDebug>
+
+using namespace log4cplus;
 int main(int argc, char *argv[])
 {
     QCoreApplication a(argc, argv);
