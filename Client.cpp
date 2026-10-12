@@ -10,30 +10,28 @@ Client::Client(QObject* parent)
   connect(m_socket, &QTcpSocket::readyRead, this, &Client::readyRead);
   connect(m_socket, &QTcpSocket::errorOccurred, this, &Client::errorOccurred);
   connect(m_socket, &QTcpSocket::disconnected, this, &Client::disconnected);
-  m_timer = new QTimer(this);
-  m_timer->setInterval(3000);
-  connect(m_timer, &QTimer::timeout, this, &Client::tryReconnect);
+  startTimer(10000);
 }
 
 Client::~Client()
 {
-  m_timer->stop();
   if (m_socket)
     m_socket->abort();
 }
+
 void Client::connectToServer(const QString& host, int port)
 {
-  serverHost = host;
-  serverPort = port;
-  tryReconnect();
+  m_serverHost = host;
+  m_serverPort = port;
+  m_socket->connectToHost(m_serverHost, m_serverPort);
 }
 
-void Client::tryReconnect()
+void Client::timerEvent(QTimerEvent* event)
 {
   if (m_socket->state() == QAbstractSocket::UnconnectedState)
   {
     qDebug() << "Attempt to connect to the server...";
-    m_socket->connectToHost(serverHost, serverPort);
+    m_socket->connectToHost(m_serverHost, m_serverPort);
   }
 }
 
@@ -57,13 +55,11 @@ void Client::readyRead()
 void Client::connected()
 {
   qDebug() << "Connect to the server";
-  m_timer->stop();
 }
 
 void Client::disconnected()
 {
   qDebug() << "The server closed the connection";
-  m_timer->start();
 }
 
 void Client::errorOccurred(QAbstractSocket::SocketError socketError)
@@ -85,7 +81,4 @@ void Client::errorOccurred(QAbstractSocket::SocketError socketError)
     qCritical() << QString("Client: The following error occurred: %1.")
                        .arg(m_socket->errorString());
   }
-
-  if (!m_timer->isActive())
-    m_timer->start();
 }

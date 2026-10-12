@@ -4,7 +4,7 @@
 #include <QDataStream>
 #include <QTcpSocket>
 #include <QThread>
-#include <QTimer>
+
 class Client : public QObject
 {
   Q_OBJECT
@@ -13,8 +13,9 @@ public:
   ~Client();
   void connectToServer(const QString& host, int port);
 
+protected:
+  void timerEvent(QTimerEvent* event) override;
 private slots:
-  void tryReconnect();
   void connected();
   void errorOccurred(QAbstractSocket::SocketError socketError);
   void disconnected();
@@ -24,9 +25,8 @@ private:
   QDataStream in;
   QTcpSocket* m_socket = nullptr;
   QString m_currentMessage;
-  QTimer* m_timer = nullptr;
-  QString serverHost = "";
-  int serverPort = 0;
+  QString m_serverHost = "";
+  int m_serverPort = 0;
 };
 
 #endif // CLIENT_H
