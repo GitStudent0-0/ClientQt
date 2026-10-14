@@ -22,3 +22,7 @@ DISTFILES += \
 
 HEADERS += \
   Client.h
+
+config_files.files = log4cplus.properties
+config_files.path = $$OUT_PWD
+COPIES += config_files
