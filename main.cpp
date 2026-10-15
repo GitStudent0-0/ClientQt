@@ -5,9 +5,18 @@
 #include <QDebug>
 #include <log4cplus/configurator.h>
 #include <log4cplus/initializer.h>
+#include <signal.h>
 using namespace log4cplus;
+void signalHandler(int sigInt)
+{
+  if (sigInt == SIGINT || sigInt == SIGTERM)
+    QCoreApplication::quit();
+}
+
 int main(int argc, char *argv[])
 {
+  signal(SIGINT, signalHandler);
+  signal(SIGTERM, signalHandler);
   Initializer initializer;
   PropertyConfigurator::doConfigure("log4cplus.properties");
   QCoreApplication a(argc, argv);

@@ -17,9 +17,9 @@ Client::Client(QObject* parent)
 
 Client::~Client()
 {
-  LOG4CPLUS_DEBUG(m_logger, "Client closed");
   if (m_socket)
-    m_socket->abort();
+    m_socket->deleteLater();
+  LOG4CPLUS_DEBUG(m_logger, "Client closed");
 }
 
 void Client::connectToServer(const QString& host, int port)
