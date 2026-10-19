@@ -1,7 +1,11 @@
 #ifndef CLIENT_H
 #define CLIENT_H
+#include "CommandStart.h"
+#include "JsonDecoder.h"
+#include "JsonEncoder.h"
 #include <QCoreApplication>
 #include <QDataStream>
+#include <QRandomGenerator>
 #include <QTcpSocket>
 #include <QThread>
 #include <log4cplus/logger.h>
@@ -13,7 +17,7 @@ class Client : public QObject
 public:
   explicit Client(QObject* parent);
   ~Client();
-  void connectToServer(const QString& host, int port);
+  void connectToServer(const QString& host, int port, QString protocol);
 
 protected:
   void timerEvent(QTimerEvent* event) override;
@@ -28,6 +32,7 @@ private:
   QTcpSocket* m_socket = nullptr;
   QString m_currentMessage;
   QString m_serverHost = "";
+  QString m_protocol = "";
   int m_serverPort = 0;
   Logger m_logger;
 };

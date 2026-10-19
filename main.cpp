@@ -42,7 +42,7 @@ int main(int argc, char *argv[])
     protocol = parser.value(protocolOption);
 
   Client* socket = new Client(qApp);
-  socket->connectToServer(host, port);
+  socket->connectToServer(host, port, protocol);
 
   return a.exec();
 }

@@ -22,10 +22,11 @@ Client::~Client()
   LOG4CPLUS_DEBUG(m_logger, "Client closed");
 }
 
-void Client::connectToServer(const QString& host, int port)
+void Client::connectToServer(const QString& host, int port, QString protocol)
 {
   m_serverHost = host;
   m_serverPort = port;
+  m_protocol = protocol;
   m_socket->connectToHost(m_serverHost, m_serverPort);
 }
 
@@ -55,7 +56,17 @@ void Client::readyRead()
   QTextStream(stdout) << m_currentMessage << "\n";
 }
 
-void Client::connected() { LOG4CPLUS_DEBUG(m_logger, "Connect to the server"); }
+void Client::connected()
+{
+  LOG4CPLUS_DEBUG(m_logger, "Connect to the server");
+  int random_id = QRandomGenerator::global()->bounded(0, 100);
+  CommandStart commandStart(1, random_id, 10);
+  JsonEncoder encoder;
+  QByteArray data = encoder.writeJson(commandStart);
+  if (m_socket->state() == QAbstractSocket::UnconnectedState)
+    return;
+  m_socket->write(data);
+}
 
 void Client::disconnected()
 {
