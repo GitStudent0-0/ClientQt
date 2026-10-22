@@ -1,11 +1,7 @@
 #ifndef CLIENT_H
 #define CLIENT_H
-#include "CommandStart.h"
-#include "JsonDecoder.h"
-#include "JsonEncoder.h"
 #include <QCoreApplication>
 #include <QDataStream>
-#include <QRandomGenerator>
 #include <QTcpSocket>
 #include <QThread>
 #include <log4cplus/logger.h>
@@ -35,6 +31,8 @@ private:
   QString m_protocol = "";
   int m_serverPort = 0;
   Logger m_logger;
+  int m_timerReconnect;
+  int m_timerSession;
 };
 
 #endif // CLIENT_H

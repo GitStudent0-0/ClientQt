@@ -17,14 +17,11 @@ qnx: target.path = /tmp/$${TARGET}/bin
 else: unix:!android: target.path = /opt/$${TARGET}/bin
 !isEmpty(target.path): INSTALLS += target
 
-DISTFILES += \
-  ../Загрузки/Telegram Desktop/doc_2026-10-02_08-57-27.clang-format
-
 HEADERS += \
   Client.h
 
 INCLUDEPATH += $$PWD/../CommunicationProtocols
-LIBS += -L$$PWD/../build-MyLib-Release/ -lCommunicationProtocols
+LIBS += -L$$PWD/../CommunicationProtocols/lib -lCommunicationProtocols
 
 config_files.files = log4cplus.properties
 config_files.path = $$OUT_PWD

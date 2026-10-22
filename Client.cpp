@@ -1,5 +1,9 @@
 #include "Client.h"
-
+#include "Command.h"
+#include "CommandMessage.h"
+#include "CommandStart.h"
+#include "JsonDecoder.h"
+#include "JsonEncoder.h"
 Client::Client(QObject* parent)
   : QObject(parent)
   , m_logger(Logger::getInstance("Client"))
@@ -11,7 +15,8 @@ Client::Client(QObject* parent)
   connect(m_socket, &QTcpSocket::readyRead, this, &Client::readyRead);
   connect(m_socket, &QTcpSocket::errorOccurred, this, &Client::errorOccurred);
   connect(m_socket, &QTcpSocket::disconnected, this, &Client::disconnected);
-  startTimer(10000);
+  m_timerReconnect = startTimer(7000);
+  m_timerSession = startTimer(20000);
   LOG4CPLUS_DEBUG(m_logger, "Client created");
 }
 
@@ -32,6 +37,19 @@ void Client::connectToServer(const QString& host, int port, QString protocol)
 
 void Client::timerEvent(QTimerEvent* event)
 {
+  int curTimerId = event->timerId();
+  if (curTimerId == m_timerSession)
+  {
+    Command command(CMDType::STOP);
+    JsonEncoder encoder;
+    QByteArray data = encoder.writeJson(command);
+    m_socket->write(data);
+    m_socket->flush();
+    killTimer(m_timerSession);
+    killTimer(m_timerReconnect);
+    m_socket->disconnectFromHost();
+    return;
+  }
   if (m_socket->state() == QAbstractSocket::UnconnectedState)
   {
     LOG4CPLUS_DEBUG(m_logger, "Attempt to connect to the server...");
@@ -41,26 +59,18 @@ void Client::timerEvent(QTimerEvent* event)
 
 void Client::readyRead()
 {
-  in.startTransaction();
-
-  QString nextMessage;
-  in >> nextMessage;
-
-  if (!in.commitTransaction())
-    return;
-
-  if (nextMessage == m_currentMessage)
-    return;
-
-  m_currentMessage = nextMessage;
-  QTextStream(stdout) << m_currentMessage << "\n";
+  CommandMessage command;
+  QByteArray data = m_socket->readAll();
+  JsonDecoder decoder;
+  bool succes = decoder.readJson(data, command);
+  if (succes && command.getCMDType() == CMDType::MESSAGE)
+    command.toDebug(qDebug());
 }
 
 void Client::connected()
 {
   LOG4CPLUS_DEBUG(m_logger, "Connect to the server");
-  int random_id = QRandomGenerator::global()->bounded(0, 100);
-  CommandStart commandStart(1, random_id, 10);
+  CommandStart commandStart(CMDType::START, 10);
   JsonEncoder encoder;
   QByteArray data = encoder.writeJson(commandStart);
   if (m_socket->state() == QAbstractSocket::UnconnectedState)
