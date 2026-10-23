@@ -16,7 +16,7 @@ Client::Client(QObject* parent)
   connect(m_socket, &QTcpSocket::errorOccurred, this, &Client::errorOccurred);
   connect(m_socket, &QTcpSocket::disconnected, this, &Client::disconnected);
   m_timerReconnect = startTimer(7000);
-  m_timerSession = startTimer(20000);
+  m_timerSession = startTimer(25000);
   LOG4CPLUS_DEBUG(m_logger, "Client created");
 }
 
@@ -37,42 +37,43 @@ void Client::connectToServer(const QString& host, int port, QString protocol)
 
 void Client::timerEvent(QTimerEvent* event)
 {
-  int curTimerId = event->timerId();
-  if (curTimerId == m_timerSession)
-  {
-    Command command(CMDType::STOP);
-    JsonEncoder encoder;
-    QByteArray data = encoder.writeJson(command);
-    m_socket->write(data);
-    m_socket->flush();
-    killTimer(m_timerSession);
-    killTimer(m_timerReconnect);
-    m_socket->disconnectFromHost();
-    return;
-  }
   if (m_socket->state() == QAbstractSocket::UnconnectedState)
   {
     LOG4CPLUS_DEBUG(m_logger, "Attempt to connect to the server...");
     m_socket->connectToHost(m_serverHost, m_serverPort);
   }
+  int curTimerId = event->timerId();
+  if (curTimerId == m_timerSession)
+  {
+    Command cmdStop(CMDType::STOP);
+    JsonEncoder encoder;
+    QByteArray data = encoder.writeJson(cmdStop);
+    m_socket->write(data);
+    if (m_socket->waitForBytesWritten(3000))
+      LOG4CPLUS_DEBUG(m_logger, "Data transmitted");
+    killTimer(m_timerSession);
+    killTimer(m_timerReconnect);
+    m_socket->disconnectFromHost();
+    return;
+  }
 }
 
 void Client::readyRead()
 {
-  CommandMessage command;
-  QByteArray data = m_socket->readAll();
-  JsonDecoder decoder;
-  bool succes = decoder.readJson(data, command);
-  if (succes && command.getCMDType() == CMDType::MESSAGE)
-    command.toDebug(qDebug());
+  // CommandMessage cmd;
+  // QByteArray data = m_socket->readAll();
+  // JsonDecoder decoder;
+  // bool succes = decoder.readJson(data, cmd);
+  // if (succes && cmd.getCMDType() == CMDType::MESSAGE)
+  //   cmd.toDebug(qDebug());
 }
 
 void Client::connected()
 {
   LOG4CPLUS_DEBUG(m_logger, "Connect to the server");
-  CommandStart commandStart(CMDType::START, 10);
+  CommandStart cmdStart(CMDType::START, 10);
   JsonEncoder encoder;
-  QByteArray data = encoder.writeJson(commandStart);
+  QByteArray data = encoder.writeJson(cmdStart);
   if (m_socket->state() == QAbstractSocket::UnconnectedState)
     return;
   m_socket->write(data);
