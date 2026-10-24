@@ -60,12 +60,14 @@ void Client::timerEvent(QTimerEvent* event)
 
 void Client::readyRead()
 {
-  // CommandMessage cmd;
-  // QByteArray data = m_socket->readAll();
-  // JsonDecoder decoder;
-  // bool succes = decoder.readJson(data, cmd);
-  // if (succes && cmd.getCMDType() == CMDType::MESSAGE)
-  //   cmd.toDebug(qDebug());
+  CommandMessage cmd;
+  QByteArray data = m_socket->readAll();
+  JsonDecoder decoder;
+  QJsonObject jsonDoc;
+  bool succes = decoder.parseToRawObject(data, jsonDoc);
+  if (succes && decoder.readJson(jsonDoc, cmd) &&
+      cmd.getCMDType() == CMDType::MESSAGE)
+    cmd.toDebug(qDebug());
 }
 
 void Client::connected()
