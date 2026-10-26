@@ -7,10 +7,12 @@
 #include <log4cplus/initializer.h>
 #include <signal.h>
 using namespace log4cplus;
+static Client* client = nullptr;
 void signalHandler(int sigInt)
 {
   if (sigInt == SIGINT || sigInt == SIGTERM)
-    QCoreApplication::quit();
+    if (client)
+      QMetaObject::invokeMethod(client, "sendToStop");
 }
 
 int main(int argc, char *argv[])
@@ -41,8 +43,8 @@ int main(int argc, char *argv[])
   if (parser.isSet(protocolOption))
     protocol = parser.value(protocolOption);
 
-  Client* socket = new Client(qApp);
-  socket->connectToServer(host, port, protocol);
+  client = new Client(qApp);
+  client->connectToServer(host, port, protocol);
 
   return a.exec();
 }

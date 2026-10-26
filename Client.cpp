@@ -4,6 +4,8 @@
 #include "CommandStart.h"
 #include "JsonDecoder.h"
 #include "JsonEncoder.h"
+#include <QRandomGenerator>
+
 Client::Client(QObject* parent)
   : QObject(parent)
   , m_logger(Logger::getInstance("Client"))
@@ -15,8 +17,9 @@ Client::Client(QObject* parent)
   connect(m_socket, &QTcpSocket::readyRead, this, &Client::readyRead);
   connect(m_socket, &QTcpSocket::errorOccurred, this, &Client::errorOccurred);
   connect(m_socket, &QTcpSocket::disconnected, this, &Client::disconnected);
-  m_timerReconnect = startTimer(7000);
-  m_timerSession = startTimer(25000);
+  connect(this, &Client::finished, this, &Client::stop);
+  connect(this, &Client::started, this, &Client::sendToStart);
+  startTimer(7000);
   LOG4CPLUS_DEBUG(m_logger, "Client created");
 }
 
@@ -42,48 +45,66 @@ void Client::timerEvent(QTimerEvent* event)
     LOG4CPLUS_DEBUG(m_logger, "Attempt to connect to the server...");
     m_socket->connectToHost(m_serverHost, m_serverPort);
   }
-  int curTimerId = event->timerId();
-  if (curTimerId == m_timerSession)
-  {
-    Command cmdStop(CMDType::STOP);
-    JsonEncoder encoder;
-    QByteArray data = encoder.writeJson(cmdStop);
-    m_socket->write(data);
-    if (m_socket->waitForBytesWritten(3000))
-      LOG4CPLUS_DEBUG(m_logger, "Data transmitted");
-    killTimer(m_timerSession);
-    killTimer(m_timerReconnect);
-    m_socket->disconnectFromHost();
-    return;
-  }
 }
 
 void Client::readyRead()
 {
-  CommandMessage cmd;
-  QByteArray data = m_socket->readAll();
-  JsonDecoder decoder;
-  QJsonObject jsonDoc;
-  bool succes = decoder.parseToRawObject(data, jsonDoc);
-  if (succes && decoder.readJson(jsonDoc, cmd) &&
-      cmd.getCMDType() == CMDType::MESSAGE)
-    cmd.toDebug(qDebug());
+  m_buffer.append(m_socket->readAll());
+  char delimiter = '\n';
+  while (m_buffer.indexOf(delimiter) != -1)
+  {
+    int index = m_buffer.indexOf(delimiter);
+    QByteArray data = m_buffer.left(index);
+    m_buffer.remove(0, index + 1);
+    CommandMessage cmd;
+    JsonDecoder decoder;
+    QJsonObject jsonDoc;
+    bool succes = decoder.parseToRawObject(data, jsonDoc);
+    if (succes && decoder.readJson(jsonDoc, cmd) &&
+        cmd.getCMDType() == CMDType::MESSAGE)
+      cmd.toDebug(qDebug());
+  }
 }
 
 void Client::connected()
 {
   LOG4CPLUS_DEBUG(m_logger, "Connect to the server");
-  CommandStart cmdStart(CMDType::START, 10);
-  JsonEncoder encoder;
-  QByteArray data = encoder.writeJson(cmdStart);
-  if (m_socket->state() == QAbstractSocket::UnconnectedState)
-    return;
-  m_socket->write(data);
+  emit started();
 }
 
 void Client::disconnected()
 {
   LOG4CPLUS_DEBUG(m_logger, "The server closed the connection");
+}
+
+void Client::sendToStart()
+{
+  int random_id = QRandomGenerator::global()->bounded(10, 30);
+  CommandStart cmdStart(CMDType::START, random_id);
+  JsonEncoder encoder;
+  QByteArray data = encoder.writeJson(cmdStart);
+  data.append('\n');
+  if (m_socket->state() == QAbstractSocket::UnconnectedState)
+    return;
+  m_socket->write(data);
+}
+
+void Client::sendToStop()
+{
+  Command cmdStop(CMDType::STOP);
+  JsonEncoder encoder;
+  QByteArray data = encoder.writeJson(cmdStop);
+  data.append('\n');
+  m_socket->write(data);
+  m_socket->flush();
+  emit finished();
+}
+
+void Client::stop()
+{
+  killTimer(m_timerId);
+  LOG4CPLUS_DEBUG(m_logger, "The client closed the connection");
+  QCoreApplication::quit();
 }
 
 void Client::errorOccurred(QAbstractSocket::SocketError socketError)
