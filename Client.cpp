@@ -1,6 +1,5 @@
 #include "Client.h"
 #include "Command.h"
-#include "CommandMessage.h"
 #include "CommandStart.h"
 #include "JsonDecoder.h"
 #include "JsonEncoder.h"
@@ -18,7 +17,7 @@ Client::Client(QObject* parent)
   connect(m_socket, &QTcpSocket::errorOccurred, this, &Client::errorOccurred);
   connect(m_socket, &QTcpSocket::disconnected, this, &Client::disconnected);
   connect(this, &Client::finished, this, &Client::stop);
-  connect(this, &Client::started, this, &Client::sendToStart);
+  connect(this, &Client::started, this, &Client::sendStart);
   startTimer(7000);
   LOG4CPLUS_DEBUG(m_logger, "Client created");
 }
@@ -56,13 +55,13 @@ void Client::readyRead()
     int index = m_buffer.indexOf(delimiter);
     QByteArray data = m_buffer.left(index);
     m_buffer.remove(0, index + 1);
-    CommandMessage cmd;
-    JsonDecoder decoder;
-    QJsonObject jsonDoc;
-    bool succes = decoder.parseToRawObject(data, jsonDoc);
-    if (succes && decoder.readJson(jsonDoc, cmd) &&
-        cmd.getCMDType() == CMDType::MESSAGE)
-      cmd.toDebug(qDebug());
+    QJsonParseError parseError;
+    Command* cmd = JsonDecoder::getCmd(data, parseError);
+    if (parseError.error != QJsonParseError::NoError)
+      LOG4CPLUS_ERROR(m_logger, "Error: " << parseError.errorString().toStdString());
+    if (cmd->getCMDType() == CMDType::MESSAGE)
+      cmd->toDebug(qDebug());
+    QMetaObject::invokeMethod(qApp, [cmd]() { delete cmd; }, Qt::QueuedConnection);
   }
 }
 
@@ -77,7 +76,7 @@ void Client::disconnected()
   LOG4CPLUS_DEBUG(m_logger, "The server closed the connection");
 }
 
-void Client::sendToStart()
+void Client::sendStart()
 {
   int random_id = QRandomGenerator::global()->bounded(10, 30);
   CommandStart cmdStart(CMDType::START, random_id);
@@ -89,7 +88,7 @@ void Client::sendToStart()
   m_socket->write(data);
 }
 
-void Client::sendToStop()
+void Client::sendStop()
 {
   Command cmdStop(CMDType::STOP);
   JsonEncoder encoder;

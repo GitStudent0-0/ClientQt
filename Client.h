@@ -30,8 +30,8 @@ private slots:
   void errorOccurred(QAbstractSocket::SocketError socketError);
   void disconnected();
   void readyRead();
-  void sendToStart();
-  void sendToStop();
+  void sendStart();
+  void sendStop();
   void stop();
 
 private:

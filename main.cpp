@@ -12,7 +12,7 @@ void signalHandler(int sigInt)
 {
   if (sigInt == SIGINT || sigInt == SIGTERM)
     if (client)
-      QMetaObject::invokeMethod(client, "sendToStop");
+      QMetaObject::invokeMethod(client, "sendStop");
 }
 
 int main(int argc, char *argv[])
