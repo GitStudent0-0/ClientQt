@@ -1,10 +1,7 @@
 #include "Client.h"
 #include "Command.h"
 #include "CommandStart.h"
-#include "JsonDecoder.h"
-#include "JsonEncoder.h"
-#include "XmlDecoder.h"
-#include "XmlEncoder.h"
+#include "Protocol.h"
 #include <QRandomGenerator>
 
 Client::Client(QObject* parent)
@@ -35,7 +32,10 @@ void Client::connectToServer(const QString& host, int port, QString protocol)
 {
   m_serverHost = host;
   m_serverPort = port;
-  m_protocol = protocol;
+  if (protocol.toUpper() == "JSON")
+    m_protocol = DataFormat::JSON;
+  else if (protocol.toUpper() == "XML")
+    m_protocol = DataFormat::XML;
   m_socket->connectToHost(m_serverHost, m_serverPort);
 }
 
@@ -50,27 +50,19 @@ void Client::timerEvent(QTimerEvent* event)
 
 void Client::readyRead()
 {
-  // m_buffer.append(m_socket->readAll());
-  // char delimiter = '\n';
-  // while (m_buffer.indexOf(delimiter) != -1)
-  // {
-  //   int index = m_buffer.indexOf(delimiter);
-  //   QByteArray data = m_buffer.left(index);
-  //   m_buffer.remove(0, index + 1);
-  //   QJsonParseError parseError;
-  //   Command* cmd = JsonDecoder::getCmd(data, parseError);
-  //   if (parseError.error != QJsonParseError::NoError)
-  //     LOG4CPLUS_ERROR(m_logger, "Error: " <<
-  //     parseError.errorString().toStdString());
-  //   if (cmd->getCMDType() == CMDType::MESSAGE)
-  //     cmd->toDebug(qDebug());
-  //   QMetaObject::invokeMethod(qApp, [cmd]() { delete cmd; },
-  //   Qt::QueuedConnection);
-  // }
-  QByteArray data = m_socket->readAll();
-  Command* cmd = XmlDecoder::getCmd(data);
-  cmd->toDebug(qDebug());
-  QMetaObject::invokeMethod(qApp, [cmd]() { delete cmd; }, Qt::QueuedConnection);
+  m_buffer.append(m_socket->readAll());
+  char delimiter = '\n';
+  while (m_buffer.indexOf(delimiter) != -1)
+  {
+    int index = m_buffer.indexOf(delimiter);
+    QByteArray data = m_buffer.left(index);
+    m_buffer.remove(0, index + 1);
+    qDebug() << data;
+    Command* cmd = Protocol::read(m_protocol, data);
+    if (cmd->getCMDType() == CMDType::MESSAGE)
+      cmd->toDebug(qDebug());
+    QMetaObject::invokeMethod(qApp, [cmd]() { delete cmd; }, Qt::QueuedConnection);
+  }
 }
 
 void Client::connected()
@@ -86,17 +78,9 @@ void Client::disconnected()
 
 void Client::sendStart()
 {
-  // int random_id = QRandomGenerator::global()->bounded(10, 30);
-  // CommandStart cmdStart(CMDType::START, random_id);
-  // JsonEncoder encoder;
-  // QByteArray data = encoder.writeJson(cmdStart);
-  // data.append('\n');
-  // if (m_socket->state() == QAbstractSocket::UnconnectedState)
-  //   return;
-  // m_socket->write(data);
   int random_id = QRandomGenerator::global()->bounded(10, 30);
   CommandStart cmdStart(CMDType::START, random_id);
-  QByteArray data = XmlEncoder::writeXml(cmdStart);
+  QByteArray data = Protocol::write(m_protocol, &cmdStart);
   data.append('\n');
   if (m_socket->state() == QAbstractSocket::UnconnectedState)
     return;
@@ -105,15 +89,8 @@ void Client::sendStart()
 
 void Client::sendStop()
 {
-  // Command cmdStop(CMDType::STOP);
-  // JsonEncoder encoder;
-  // QByteArray data = encoder.writeJson(cmdStop);
-  // data.append('\n');
-  // m_socket->write(data);
-  // m_socket->flush();
-  // emit finished();
   Command cmdStop(CMDType::STOP);
-  QByteArray data = XmlEncoder::writeXml(cmdStop);
+  QByteArray data = Protocol::write(m_protocol, &cmdStop);
   data.append('\n');
   m_socket->write(data);
   m_socket->flush();

@@ -1,5 +1,6 @@
 #ifndef CLIENT_H
 #define CLIENT_H
+#include "Protocol.h"
 #include <QCoreApplication>
 #include <QDataStream>
 #include <QTcpSocket>
@@ -39,7 +40,7 @@ private:
   QTcpSocket* m_socket = nullptr;
   QString m_currentMessage;
   QString m_serverHost = "";
-  QString m_protocol = "";
+  DataFormat m_protocol;
   int m_serverPort = 0;
   Logger m_logger;
   int m_timerId;
