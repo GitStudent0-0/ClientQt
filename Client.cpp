@@ -58,10 +58,13 @@ void Client::readyRead()
     QByteArray data = m_buffer.left(index);
     m_buffer.remove(0, index + 1);
     qDebug() << data;
-    Command* cmd = Protocol::read(m_protocol, data);
+    Protocol* protocol = Protocol::create(m_protocol);
+    Command* cmd = protocol->read(data);
     if (cmd->getCMDType() == CMDType::MESSAGE)
       cmd->toDebug(qDebug());
     QMetaObject::invokeMethod(qApp, [cmd]() { delete cmd; }, Qt::QueuedConnection);
+    QMetaObject::invokeMethod(
+        qApp, [protocol]() { delete protocol; }, Qt::QueuedConnection);
   }
 }
 
@@ -80,7 +83,8 @@ void Client::sendStart()
 {
   int random_id = QRandomGenerator::global()->bounded(10, 30);
   CommandStart cmdStart(CMDType::START, random_id);
-  QByteArray data = Protocol::write(m_protocol, &cmdStart);
+  Protocol* protocol = Protocol::create(m_protocol);
+  QByteArray data = protocol->write(&cmdStart);
   data.append('\n');
   if (m_socket->state() == QAbstractSocket::UnconnectedState)
     return;
@@ -90,7 +94,8 @@ void Client::sendStart()
 void Client::sendStop()
 {
   Command cmdStop(CMDType::STOP);
-  QByteArray data = Protocol::write(m_protocol, &cmdStop);
+  Protocol* protocol = Protocol::create(m_protocol);
+  QByteArray data = protocol->write(&cmdStop);
   data.append('\n');
   m_socket->write(data);
   m_socket->flush();
