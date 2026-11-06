@@ -6,7 +6,8 @@
 
 Client::Client(QObject* parent)
   : QObject(parent)
-  , m_logger(Logger::getInstance("Client"))
+  , m_logger(Logger::getInstance("Client.Network"))
+  , m_id(QRandomGenerator::global()->bounded(100, 999))
 {
   m_socket = new QTcpSocket(this);
   in.setDevice(m_socket);
@@ -18,24 +19,24 @@ Client::Client(QObject* parent)
   connect(this, &Client::finished, this, &Client::stop);
   connect(this, &Client::started, this, &Client::sendStart);
   startTimer(7000);
-  LOG4CPLUS_DEBUG(m_logger, "Client created");
+  LOG4CPLUS_DEBUG(m_logger, "Client created id: " << m_id);
 }
 
 Client::~Client()
 {
-  if (m_socket)
-    m_socket->deleteLater();
-  LOG4CPLUS_DEBUG(m_logger, "Client closed");
+  delete m_protocol;
+  m_protocol = nullptr;
+  delete m_socket;
+  m_socket = nullptr;
+  LOG4CPLUS_DEBUG(m_logger, "Client closed id: " << m_id);
 }
 
-void Client::connectToServer(const QString& host, int port, QString protocol)
+void Client::connectToServer(const QString& host, int port,
+                             const DataFormat& protocol)
 {
   m_serverHost = host;
   m_serverPort = port;
-  if (protocol.toUpper() == "JSON")
-    m_protocol = DataFormat::JSON;
-  else if (protocol.toUpper() == "XML")
-    m_protocol = DataFormat::XML;
+  m_protocol = Protocol::create(protocol);
   m_socket->connectToHost(m_serverHost, m_serverPort);
 }
 
@@ -57,14 +58,11 @@ void Client::readyRead()
     int index = m_buffer.indexOf(delimiter);
     QByteArray data = m_buffer.left(index);
     m_buffer.remove(0, index + 1);
-    qDebug() << data;
-    Protocol* protocol = Protocol::create(m_protocol);
-    Command* cmd = protocol->read(data);
+    Command* cmd = m_protocol->read(data);
     if (cmd->getCMDType() == CMDType::MESSAGE)
       cmd->toDebug(qDebug());
-    QMetaObject::invokeMethod(qApp, [cmd]() { delete cmd; }, Qt::QueuedConnection);
-    QMetaObject::invokeMethod(
-        qApp, [protocol]() { delete protocol; }, Qt::QueuedConnection);
+    delete cmd;
+    cmd = nullptr;
   }
 }
 
@@ -83,8 +81,7 @@ void Client::sendStart()
 {
   int random_id = QRandomGenerator::global()->bounded(10, 30);
   CommandStart cmdStart(CMDType::START, random_id);
-  Protocol* protocol = Protocol::create(m_protocol);
-  QByteArray data = protocol->write(&cmdStart);
+  QByteArray data = m_protocol->write(&cmdStart);
   data.append('\n');
   if (m_socket->state() == QAbstractSocket::UnconnectedState)
     return;
@@ -94,8 +91,7 @@ void Client::sendStart()
 void Client::sendStop()
 {
   Command cmdStop(CMDType::STOP);
-  Protocol* protocol = Protocol::create(m_protocol);
-  QByteArray data = protocol->write(&cmdStop);
+  QByteArray data = m_protocol->write(&cmdStop);
   data.append('\n');
   m_socket->write(data);
   m_socket->flush();

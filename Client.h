@@ -17,7 +17,7 @@ class Client : public QObject
 public:
   explicit Client(QObject* parent);
   ~Client();
-  void connectToServer(const QString& host, int port, QString protocol);
+  void connectToServer(const QString& host, int port, const DataFormat& protocol);
 
 signals:
   void finished();
@@ -38,13 +38,14 @@ private slots:
 private:
   QDataStream in;
   QTcpSocket* m_socket = nullptr;
+  Protocol* m_protocol = nullptr;
   QString m_currentMessage;
   QString m_serverHost = "";
-  DataFormat m_protocol;
   int m_serverPort = 0;
   Logger m_logger;
   int m_timerId;
   QByteArray m_buffer;
+  int m_id;
 };
 
 #endif // CLIENT_H

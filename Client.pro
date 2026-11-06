@@ -23,6 +23,4 @@ HEADERS += \
 INCLUDEPATH += $$PWD/../CommunicationProtocols
 LIBS += -L$$PWD/../CommunicationProtocols/lib -lCommunicationProtocols
 
-config_files.files = log4cplus.properties
-config_files.path = $$OUT_PWD
-COPIES += config_files
+DEFINES += LOG_CONFIG_PATH=\\\"$$PWD/../CommunicationProtocols/log4cplus.properties\\\"
