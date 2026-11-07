@@ -15,9 +15,9 @@ class Client : public QObject
   Q_OBJECT
 
 public:
-  explicit Client(QObject* parent);
+  explicit Client(QObject* parent, const QString& host, int port,
+                  const DataFormat& protocol);
   ~Client();
-  void connectToServer(const QString& host, int port, const DataFormat& protocol);
 
 signals:
   void finished();

@@ -64,7 +64,7 @@ int main(int argc, char *argv[])
 
   if (!parser.isSet(hostOption))
   {
-    LOG4CPLUS_ERROR(m_logger, "Error: Option "
+    LOG4CPLUS_FATAL(m_logger, "Error: Option "
                                   << hostOption.valueName().toStdString()
                                   << " was not specified");
     parser.showHelp(1);
@@ -73,7 +73,7 @@ int main(int argc, char *argv[])
 
   if (!parser.isSet(portOption))
   {
-    LOG4CPLUS_ERROR(m_logger, "Error: Option "
+    LOG4CPLUS_FATAL(m_logger, "Error: Option "
                                   << portOption.valueName().toStdString()
                                   << " was not specified");
     parser.showHelp(1);
@@ -82,7 +82,7 @@ int main(int argc, char *argv[])
 
   if (!parser.isSet(protocolOption))
   {
-    LOG4CPLUS_ERROR(m_logger, "Error: Option "
+    LOG4CPLUS_FATAL(m_logger, "Error: Option "
                                   << protocolOption.valueName().toStdString()
                                   << " was not specified");
     parser.showHelp(1);
@@ -91,7 +91,7 @@ int main(int argc, char *argv[])
 
   if (!parser.isSet(logOption))
   {
-    LOG4CPLUS_ERROR(m_logger, "Error: Option " << logOption.valueName().toStdString()
+    LOG4CPLUS_FATAL(m_logger, "Error: Option " << logOption.valueName().toStdString()
                                                << " was not specified");
     parser.showHelp(1);
   }
@@ -99,13 +99,12 @@ int main(int argc, char *argv[])
   QString log = parser.value(logOption);
   Logger::getRoot().setLogLevel(getLogLevel(log));
 
-  client = new Client(qApp);
   if (protocol.toUpper() == "JSON")
-    client->connectToServer(host, port, DataFormat::JSON);
+    client = new Client(qApp, host, port, DataFormat::JSON);
   else if (protocol.toUpper() == "XML")
-    client->connectToServer(host, port, DataFormat::XML);
+    client = new Client(qApp, host, port, DataFormat::XML);
   else
-    LOG4CPLUS_ERROR(m_logger, "Error: Protocol specified incorrectly");
+    LOG4CPLUS_FATAL(m_logger, "Error: Protocol specified incorrectly");
 
   return a.exec();
 }
