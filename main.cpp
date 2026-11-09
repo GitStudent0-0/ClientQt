@@ -5,10 +5,13 @@
 #include <QCoreApplication>
 #include <QDebug>
 #include <log4cplus/configurator.h>
+#include <log4cplus/helpers/loglog.h>
 #include <log4cplus/initializer.h>
 #include <signal.h>
 
 using namespace log4cplus;
+using std::string;
+using std::to_string;
 
 static Client* client = nullptr;
 
@@ -43,7 +46,7 @@ int main(int argc, char *argv[])
   signal(SIGTERM, signalHandler);
 
   Initializer initializer;
-  PropertyConfigurator::doConfigure(LOG4CPLUS_TEXT(LOG_CONFIG_PATH));
+  helpers::Properties props(LOG4CPLUS_TEXT(LOG_CONFIG_PATH));
   Logger m_logger = Logger::getInstance("Client.Main");
 
   QCoreApplication a(argc, argv);
@@ -99,10 +102,17 @@ int main(int argc, char *argv[])
   QString log = parser.value(logOption);
   Logger::getRoot().setLogLevel(getLogLevel(log));
 
+  qint64 pid = QCoreApplication::applicationPid();
+  string uniqueName = "logs/app-Client-" + to_string(pid) + ".log";
+  props.setProperty(LOG4CPLUS_TEXT("log4cplus.appender.FileAppender.File"),
+                    LOG4CPLUS_TEXT(uniqueName));
+  PropertyConfigurator config(props);
+  config.configure();
+
   if (protocol.toUpper() == "JSON")
-    client = new Client(qApp, host, port, DataFormat::JSON);
+    client = new Client(qApp, host, port, DataFormat::JSON, pid);
   else if (protocol.toUpper() == "XML")
-    client = new Client(qApp, host, port, DataFormat::XML);
+    client = new Client(qApp, host, port, DataFormat::XML, pid);
   else
     LOG4CPLUS_FATAL(m_logger, "Error: Protocol specified incorrectly");
 

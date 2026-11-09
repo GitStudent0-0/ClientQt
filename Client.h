@@ -16,7 +16,7 @@ class Client : public QObject
 
 public:
   explicit Client(QObject* parent, const QString& host, int port,
-                  const DataFormat& protocol);
+                  const DataFormat& protocol, qint64 pid);
   ~Client();
 
 signals:

@@ -5,10 +5,10 @@
 #include <QRandomGenerator>
 
 Client::Client(QObject* parent, const QString& host, int port,
-               const DataFormat& protocol)
+               const DataFormat& protocol, qint64 pid)
   : QObject(parent)
   , m_logger(Logger::getInstance("Client.Network"))
-  , m_id(QRandomGenerator::global()->bounded(100, 999))
+  , m_id(pid)
 {
   m_socket = new QTcpSocket(this);
   connect(m_socket, &QTcpSocket::connected, this, &Client::connected);
