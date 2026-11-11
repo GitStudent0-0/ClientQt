@@ -100,7 +100,6 @@ int main(int argc, char *argv[])
   }
 
   QString log = parser.value(logOption);
-  Logger::getRoot().setLogLevel(getLogLevel(log));
 
   qint64 pid = QCoreApplication::applicationPid();
   string uniqueName = "logs/app-Client-" + to_string(pid) + ".log";
@@ -108,6 +107,7 @@ int main(int argc, char *argv[])
                     LOG4CPLUS_TEXT(uniqueName));
   PropertyConfigurator config(props);
   config.configure();
+  Logger::getRoot().setLogLevel(getLogLevel(log));
 
   if (protocol.toUpper() == "JSON")
     client = new Client(qApp, host, port, DataFormat::JSON, pid);
