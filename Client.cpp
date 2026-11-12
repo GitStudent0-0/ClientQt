@@ -40,11 +40,17 @@ Client::~Client()
 
 void Client::timerEvent(QTimerEvent* event)
 {
+  if (m_timerId != 0)
+  {
+    killTimer(m_timerId);
+    m_timerId = 0;
+  }
   if (m_socket->state() == QAbstractSocket::UnconnectedState)
   {
     LOG4CPLUS_DEBUG(m_logger, "Attempt to connect to the server...");
     m_socket->connectToHost(m_serverHost, m_serverPort);
   }
+  m_timerId = startTimer(7000);
 }
 
 void Client::readyRead()
@@ -57,13 +63,10 @@ void Client::readyRead()
     QByteArray data = m_buffer.left(index);
     m_buffer.remove(0, index + 1);
     Command* cmd = m_protocol->read(data);
-    if (!cmd)
-      LOG4CPLUS_ERROR(m_logger, "Error: Сommand not in the specified format");
+    if (cmd && cmd->getCMDType() == CMDType::MESSAGE)
+      cmd->toDebug(qDebug());
     else
-    {
-      if (cmd->getCMDType() == CMDType::MESSAGE)
-        cmd->toDebug(qDebug());
-    }
+      LOG4CPLUS_ERROR(m_logger, "Error: Сommand not in the specified format");
     delete cmd;
     cmd = nullptr;
   }
@@ -102,8 +105,11 @@ void Client::sendStop()
 
 void Client::stop()
 {
-  killTimer(m_timerId);
-  m_timerId = 0;
+  if (m_timerId != 0)
+  {
+    killTimer(m_timerId);
+    m_timerId = 0;
+  }
   LOG4CPLUS_INFO(m_logger, "The client closed the connection");
   QCoreApplication::quit();
 }
