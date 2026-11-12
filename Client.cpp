@@ -3,6 +3,9 @@
 #include "CommandStart.h"
 #include "Protocol.h"
 #include <QRandomGenerator>
+#include <netinet/in.h>
+#include <netinet/tcp.h>
+#include <sys/socket.h>
 
 Client::Client(QObject* parent, const QString& host, int port,
                const DataFormat& protocol, qint64 pid)
@@ -17,12 +20,13 @@ Client::Client(QObject* parent, const QString& host, int port,
   connect(m_socket, &QTcpSocket::disconnected, this, &Client::disconnected);
   connect(this, &Client::finished, this, &Client::stop);
   connect(this, &Client::started, this, &Client::sendStart);
-  startTimer(7000);
+  m_timerId = startTimer(7000);
   LOG4CPLUS_INFO(m_logger, "Client created id: " << m_id);
   m_serverHost = host;
   m_serverPort = port;
   m_protocol = Protocol::create(protocol);
   m_socket->connectToHost(m_serverHost, m_serverPort);
+  m_socket->setSocketOption(QAbstractSocket::KeepAliveOption, 1);
 }
 
 Client::~Client()
@@ -64,7 +68,6 @@ void Client::readyRead()
 
 void Client::connected()
 {
-  LOG4CPLUS_INFO(m_logger, "Connect to the server");
   emit started();
 }
 

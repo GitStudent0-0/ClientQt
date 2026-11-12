@@ -19,7 +19,7 @@ void signalHandler(int sigInt)
 {
   if (sigInt == SIGINT || sigInt == SIGTERM)
     if (client)
-      QMetaObject::invokeMethod(client, "sendStop");
+      QMetaObject::invokeMethod(client, "sendStop", Qt::QueuedConnection);
 }
 
 LogLevel getLogLevel(QString log)
