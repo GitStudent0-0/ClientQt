@@ -59,8 +59,11 @@ void Client::readyRead()
     Command* cmd = m_protocol->read(data);
     if (!cmd)
       LOG4CPLUS_ERROR(m_logger, "Error: Сommand not in the specified format");
-    if (cmd->getCMDType() == CMDType::MESSAGE)
-      cmd->toDebug(qDebug());
+    else
+    {
+      if (cmd->getCMDType() == CMDType::MESSAGE)
+        cmd->toDebug(qDebug());
+    }
     delete cmd;
     cmd = nullptr;
   }
@@ -100,6 +103,7 @@ void Client::sendStop()
 void Client::stop()
 {
   killTimer(m_timerId);
+  m_timerId = 0;
   LOG4CPLUS_INFO(m_logger, "The client closed the connection");
   QCoreApplication::quit();
 }
